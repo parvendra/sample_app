@@ -1,8 +1,10 @@
 class UsersController < ApplicationController
   before_filter :authenticate, :only => [:index, :edit, :update, :destroy]
   before_filter :correct_user, :only => [:edit, :update]
-  before_filter :admin_user,   :only => :destroy
-  
+  before_filter :admin_user, :only => :destroy
+  before_filter :admin_himself, :only => :destroy
+  before_filter :new_user, :only => [:new, :create]
+
   def index
     @title = "All users"
     @users = User.paginate(:page => params[:page])
@@ -54,7 +56,12 @@ class UsersController < ApplicationController
   end
   
   private
-  
+  def new_user
+     if signed_in?
+       flash[:notice] = "Need to sign out before creating new User Account"
+       redirect_to(root_path)
+     end
+  end
   def authenticate
     deny_access unless signed_in?
   end
@@ -63,6 +70,12 @@ class UsersController < ApplicationController
     redirect_to(root_path) unless current_user?(@user)
   end
   def admin_user
-      redirect_to(root_path) unless current_user.admin?
+    redirect_to(root_path) unless current_user.admin?
+  end
+  def admin_himself
+     if User.find(params[:id]) == current_user
+       flash[:notice] = "Can not delete your own account"
+       redirect_to(users_path)
+     end
   end
 end

@@ -87,15 +87,30 @@ describe UsersController do
   end
 
   describe "GET 'new'" do
-    it "should be successful" do
-      get :new
-      response.should be_success
+    describe "for non-signed-in user" do
+      it "should be successful" do
+        get :new
+        response.should be_success
+      end
+      it "should have the right title" do
+        get :new
+        response.should have_selector("title", :content => "Sign up")
+      end
     end
-    it "should have the right title" do
-      get :new
-      response.should have_selector("title", :content => "Sign up")
-    end  
+
+    describe "for signed-in-user" do
+      before(:each) do
+        @user = test_sign_in(Factory(:user))
+      end
+      
+      it "should be redirected to root path" do
+        get :new
+        response.should redirect_to(root_path)
+      end
+    end
+    
   end
+  
 
   describe "POST 'create'" do
 
@@ -289,8 +304,8 @@ describe UsersController do
     describe "as an admin user" do
 
       before(:each) do
-        admin = Factory(:user, :email => "admin@example.com", :admin => true)
-        test_sign_in(admin)
+        @current_admin = Factory(:user, :email => "admin@example.com", :admin => true)
+        test_sign_in(@current_admin)
       end
 
       it "should destroy the user" do
@@ -301,6 +316,15 @@ describe UsersController do
 
       it "should redirect to the users page" do
         delete :destroy, :id => @user
+        response.should redirect_to(users_path)
+      end
+      it "should not destroy himself" do
+        lambda do
+          delete :destroy, :id => @current_admin
+          end.should_not change(User, :count)
+      end
+      it "should redirect to the users page when destroying himself" do
+        delete :destroy, :id => @current_admin
         response.should redirect_to(users_path)
       end
     end
